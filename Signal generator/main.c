@@ -11,7 +11,7 @@
  
 // ============================================
 
-int programState=1;
+int programState=2;
 volatile char lcd[32];
 volatile char lcd0[16];
 volatile char lcd1[16];
@@ -405,24 +405,13 @@ int main(void)
 	int delayInMicroS=(int)((1000000/(selectedFreq)*(TABLE_SIZE+1)*4));
 	
 	while (programState==1) {
-		/*
-		binOnOutput16Bit(1,DACPins);
-		HAL_Delay(100);
-		binOnOutput16Bit((int)pow(2,16)-1,DACPins);
-		HAL_Delay(100);
-		*/
-		//int delay=10;
-		//LCD_Puts(0,1,"ehem");
-		//TIM5_Delay_us(1000000);
-		//LCD_Clear();
+		// sine
 		HAL_GPIO_WritePin(GPIOA,GPIO_PIN_15,GPIO_PIN_SET);
 		HAL_GPIO_WritePin(GPIOA,GPIO_PIN_15,GPIO_PIN_RESET);
 			//HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);
 		for (int i=0 ; i < TABLE_SIZE+1 ; i++ )
 		{
-			//if (sin90[i]+sin90[i] < 0x8000)				
-				binOnOutput16Bit(sin90[i]+0x8000,DACPins);
-			//else binOnOutput16Bit(sin90[i]+sin90[i],DACPins);
+			binOnOutput16Bit(sin90[i]+0x8000,DACPins);
 			//HAL_Delay(delay);
 			TIM5_Delay_us(7);
 			HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);
@@ -452,13 +441,24 @@ int main(void)
 	
 	}
 	while (programState==2) {
+		// square
+		for (int i=0 ; i < TABLE_SIZE+1 ; i++ )
+		{
+			binOnOutput16Bit(0x0FFF,DACPins);
+			//HAL_Delay(delay);
+			TIM5_Delay_us(7);
+		}
+		for (i=TABLE_SIZE ; i >= 0 ; i-- )
+		{
+			binOnOutput16Bit(0x0000,DACPins);
+			//HAL_Delay(delay);
+			TIM5_Delay_us(7);
+			//TIM5_Delay_us(delayInMicroS);
+		}
+	}
+	
+	while (programState==4) {
 		// Absolute sine
-		/*
-		binOnOutput16Bit(1,DACPins);
-		HAL_Delay(100);
-		binOnOutput16Bit((int)pow(2,16)-1,DACPins);
-		HAL_Delay(100);
-		*/
 		HAL_GPIO_WritePin(GPIOA,GPIO_PIN_15,GPIO_PIN_SET);
 		HAL_GPIO_WritePin(GPIOA,GPIO_PIN_15,GPIO_PIN_RESET);
 			//HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);
