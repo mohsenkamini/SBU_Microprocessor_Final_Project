@@ -11,6 +11,7 @@
  
 // ============================================
 
+int programState=1;
 volatile char lcd[32];
 volatile char lcd0[16];
 volatile char lcd1[16];
@@ -75,9 +76,8 @@ typedef struct
 
 
 char* selectedWaveForm="Sin";
-unsigned int selectedWaveFormIndex=0 ,selectedTime=0,selectedFreq=0;
-int programState=1;
-
+unsigned int selectedWaveFormIndex=0 ,selectedTime=1000,selectedFreq=10;
+volatile unsigned int Overflow_Counter = 0;
 void UARTSend(char* str, unsigned int length) {
 
 	for (unsigned int i=0 ; i < length ; i++)
@@ -212,6 +212,30 @@ void binOnOutput16Bit(int n,DACOutPins   DACPins) {
 	
 }
 
+
+int counter5=65535, psc5=15;	// breaking freq down to 1MHz which means each count=1micros
+void TIM5_Delay_us(int us)
+{
+	Overflow_Counter=0;
+	TIM5->CNT		= 0;			// Clear timer counter
+	TIM5->CR1		= 1;			// Enable counter (CEN)
+	
+		  int microSec = ((Overflow_Counter*counter5*psc5) + TIM5->CNT );
+			//int microSec = TIM5->CNT ;
+			
+		while (microSec <= us) {
+			//micro = ((Overflow_Counter*counter5*psc5) + TIM5->CNT );
+			//micro = ((micro*(int)(pow(10,9)))/selectedFreq);
+			//microSec = TIM5->CNT ;
+			microSec = ((Overflow_Counter*counter5*psc5) + TIM5->CNT );
+			
+		}
+	
+	TIM5->CR1		= 0;			// Disable counter (CEN)
+			
+			
+}
+
 // ============================================
 int main(void)
 {
@@ -225,6 +249,16 @@ int main(void)
 	
 	LCD_Init();
 	// Pin Config
+		// timer
+	
+	RCC->APB1ENR |= (1<<3);			// Enable Timer 5 clock
+	GPIOA->MODER |= 2 << 0;		// PA0: Alternate function
+	GPIOA->AFR[0] |= (1<<1);		// PA0: AF2 (TIM5_CH1)
+	TIM5->PSC = psc5-1;					// Set prescaler to divide by 1
+	TIM5->ARR = counter5;				// Auto reload value
+	TIM5->DIER |= (1<<0) ;	// update interrupt
+	//NVIC_EnableIRQ(TIM5_IRQn);		// Enable the NVIC interrupt for Timer 5
+	
 		// Input
 	GPIO_InitTypeDef PinConfig;
 	PinConfig.Mode = GPIO_MODE_OUTPUT_PP;
@@ -261,6 +295,10 @@ int main(void)
 	HAL_GPIO_Init(GPIOC, &PinConfig);
 	PinConfig.Pin = GPIO_PIN_12;
 	HAL_GPIO_Init(GPIOC, &PinConfig);
+	
+		// to test timer
+	PinConfig.Pin = GPIO_PIN_15;
+	HAL_GPIO_Init(GPIOA, &PinConfig);
 	
 		// set DACOutPins
 	DACOutPins   DACPins;
@@ -364,37 +402,82 @@ int main(void)
 	}
 	
 	
+	int delayInMicroS=(int)((1000000/(selectedFreq)*(TABLE_SIZE+1)*4));
+	
 	while (programState==1) {
-	/*
+		/*
 		binOnOutput16Bit(1,DACPins);
 		HAL_Delay(100);
 		binOnOutput16Bit((int)pow(2,16)-1,DACPins);
 		HAL_Delay(100);
 		*/
-	for (int i=0 ; i < TABLE_SIZE+1 ; i++ )
-	{
-		binOnOutput16Bit(sin90[i]+sin90[i],DACPins);
-		HAL_Delay(10);
-	}
+		//int delay=10;
+		//LCD_Puts(0,1,"ehem");
+		//TIM5_Delay_us(1000000);
+		//LCD_Clear();
+		HAL_GPIO_WritePin(GPIOA,GPIO_PIN_15,GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOA,GPIO_PIN_15,GPIO_PIN_RESET);
+			//HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);
+		for (int i=0 ; i < TABLE_SIZE+1 ; i++ )
+		{
+			//if (sin90[i]+sin90[i] < 0x8000)				
+				binOnOutput16Bit(sin90[i]+0x8000,DACPins);
+			//else binOnOutput16Bit(sin90[i]+sin90[i],DACPins);
+			//HAL_Delay(delay);
+			TIM5_Delay_us(7);
+			HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);
+		}
+		for (i=TABLE_SIZE ; i >= 0 ; i-- )
+		{
+			binOnOutput16Bit(sin90[i]+0x8000,DACPins);
+			//HAL_Delay(delay);
+			TIM5_Delay_us(7);
+			//TIM5_Delay_us(delayInMicroS);
+		}
 	
-	for (i=TABLE_SIZE ; i >= 0 ; i-- )
-	{
-		binOnOutput16Bit(sin90[i]+sin90[i],DACPins);
-		HAL_Delay(10);
-	}
-	for (i=0 ; i < TABLE_SIZE+1 ; i++ )
-	{
+		for (i=0 ; i < TABLE_SIZE+1 ; i++ )
+		{
+			binOnOutput16Bit(sin90[i],DACPins);
+			//HAL_Delay(delay);
+			TIM5_Delay_us(700);
+			//TIM5_Delay_us(delayInMicroS);
+		}
+		for (i=TABLE_SIZE ; i >=0 ; i-- )
+		{
 		binOnOutput16Bit(sin90[i],DACPins);
-		HAL_Delay(10);
-	}
-	for (i=TABLE_SIZE ; i >=0 ; i-- )
-	{
-		binOnOutput16Bit(sin90[i],DACPins);
-		HAL_Delay(10);
-	}
+		//HAL_Delay(delay);
+		TIM5_Delay_us(700);
+		//TIM5_Delay_us(delayInMicroS);
+		}
 	
 	}
-	HAL_Delay(10000);
+	while (programState==2) {
+		// Absolute sine
+		/*
+		binOnOutput16Bit(1,DACPins);
+		HAL_Delay(100);
+		binOnOutput16Bit((int)pow(2,16)-1,DACPins);
+		HAL_Delay(100);
+		*/
+		HAL_GPIO_WritePin(GPIOA,GPIO_PIN_15,GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOA,GPIO_PIN_15,GPIO_PIN_RESET);
+			//HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);
+		for (int i=0 ; i < TABLE_SIZE+1 ; i++ )
+		{
+			binOnOutput16Bit(sin90[i],DACPins);
+			//HAL_Delay(delay);
+			TIM5_Delay_us(7);
+			HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);
+		}
+		for (i=TABLE_SIZE ; i >= 0 ; i-- )
+		{
+			binOnOutput16Bit(sin90[i],DACPins);
+			//HAL_Delay(delay);
+			TIM5_Delay_us(7);
+			//TIM5_Delay_us(delayInMicroS);
+		}
+	}
+	//HAL_Delay(10000);
 	return 0;
 
 }
@@ -404,3 +487,14 @@ void SysTick_Handler(void)
   HAL_IncTick();
 }
 // ============================================
+
+
+void TIM5_IRQHandler()
+{
+	
+	if (TIM5->SR & (1<<0))			// update interrupt
+	{
+		Overflow_Counter = Overflow_Counter + 1;
+		TIM5->SR &= ~(1<<0);		// Clear UIF
+	}
+}
