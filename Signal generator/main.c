@@ -12,7 +12,7 @@
  
 // ============================================
 
-int programState=1;
+int programState=4;
 volatile char lcd[32];
 volatile char lcd0[16];
 volatile char lcd1[16];
@@ -479,6 +479,7 @@ int main(void)
 		}
 	
 	}
+	
 	while (programState==2) {
 		// square
 		for (int i=0 ; i < TABLE_SIZE+1 ; i++ )
@@ -585,5 +586,6 @@ void TIM5_IRQHandler()
 	{
 		Overflow_Counter = Overflow_Counter + 1;
 		TIM5->SR &= ~(1<<0);		// Clear UIF
-	}			
+	}
+				
 }
