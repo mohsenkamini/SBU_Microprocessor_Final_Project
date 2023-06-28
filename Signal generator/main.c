@@ -12,7 +12,7 @@
  
 // ============================================
 
-int programState=5;
+int programState=6;
 volatile char lcd[32];
 volatile char lcd0[16];
 volatile char lcd1[16];
@@ -516,19 +516,21 @@ int main(void)
 	}
 	while (programState==5) {
 		// Step
-		for (int i=0 ; i < TRIANGLE_TABLE_SIZE+1/2 ; i++ )
+		for (int i=0 ; i < (TRIANGLE_TABLE_SIZE+1)/2 ; i++ )
 		{
 			binOnOutput16Bit(traingle[i],DACPins);
 			HAL_Delay(50);
 			//TIM5_Delay_us(7);
-		}/*
-		for (i=0x7FFF ; i >= 0 ; i-- )
+		}
+	}
+	while (programState==6) {
+		// sawtooth
+		for (int i=0 ; i < (TRIANGLE_TABLE_SIZE+1)/4 ; i++ )
 		{
-			binOnOutput16Bit(i,DACPins);
-			//HAL_Delay(delay);
-			TIM5_Delay_us(7);
-			//TIM5_Delay_us(delayInMicroS);
-		}*/
+			binOnOutput16Bit(traingle[i],DACPins);
+			//HAL_Delay(50);
+			//TIM5_Delay_us(7);
+		}
 	}
 	//HAL_Delay(10000);
 	return 0;

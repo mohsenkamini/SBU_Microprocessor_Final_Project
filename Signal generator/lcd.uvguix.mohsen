@@ -1865,9 +1865,9 @@
       <ActiveTab>0</ActiveTab>
       <Doc>
         <Name>.\main.c</Name>
-        <ColumnNumber>17</ColumnNumber>
-        <TopLine>503</TopLine>
-        <CurrentLine>522</CurrentLine>
+        <ColumnNumber>24</ColumnNumber>
+        <TopLine>513</TopLine>
+        <CurrentLine>519</CurrentLine>
         <Folding>1</Folding>
         <ContractedFolders></ContractedFolders>
         <PaneID>0</PaneID>
@@ -1903,7 +1903,7 @@
   </MDIGroups>
 
   <Bookmarks>
-    <ListItem>.\main.c 540</ListItem>
+    <ListItem>.\main.c 542</ListItem>
     <ListItem>.\main.c 12</ListItem>
     <ListItem>.\main.c 352</ListItem>
   </Bookmarks>
