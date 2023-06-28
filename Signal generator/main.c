@@ -12,7 +12,7 @@
  
 // ============================================
 
-int programState=6;
+int programState=5;
 volatile char lcd[32];
 volatile char lcd0[16];
 volatile char lcd1[16];
@@ -78,6 +78,7 @@ typedef struct
 
 char* selectedWaveForm="Sin";
 unsigned int selectedWaveFormIndex=0 ,selectedTime=1000,selectedFreq=10;
+int counter5=65535, psc5=16;	// breaking freq down to 1MHz which means each count=1micros
 volatile unsigned int Overflow_Counter = 0;
 void UARTSend(char* str, unsigned int length) {
 
@@ -214,21 +215,22 @@ void binOnOutput16Bit(int n,DACOutPins   DACPins) {
 }
 
 
-int counter5=65535, psc5=15;	// breaking freq down to 1MHz which means each count=1micros
 void TIM5_Delay_us(int us)
 {
-	Overflow_Counter=0;
+	//Overflow_Counter=0;
 	TIM5->CNT		= 0;			// Clear timer counter
 	TIM5->CR1		= 1;			// Enable counter (CEN)
 	
-		  int microSec = ((Overflow_Counter*counter5*psc5) + TIM5->CNT );
+		  int microSec = ((Overflow_Counter*counter5) + TIM5->CNT );
 			//int microSec = TIM5->CNT ;
 			
 		while (microSec <= us) {
+			sprintf(lcd,"%d,%d",microSec,Overflow_Counter);
+			LCD_Puts(0,1,lcd);
 			//micro = ((Overflow_Counter*counter5*psc5) + TIM5->CNT );
 			//micro = ((micro*(int)(pow(10,9)))/selectedFreq);
 			//microSec = TIM5->CNT ;
-			microSec = ((Overflow_Counter*counter5*psc5) + TIM5->CNT );
+			microSec = ((Overflow_Counter*counter5) + TIM5->CNT );
 			
 		}
 	
@@ -258,7 +260,7 @@ int main(void)
 	TIM5->PSC = psc5-1;					// Set prescaler to divide by 1
 	TIM5->ARR = counter5;				// Auto reload value
 	TIM5->DIER |= (1<<0) ;	// update interrupt
-	//NVIC_EnableIRQ(TIM5_IRQn);		// Enable the NVIC interrupt for Timer 5
+	NVIC_EnableIRQ(TIM5_IRQn);		// Enable the NVIC interrupt for Timer 5
 	
 		// Input
 	GPIO_InitTypeDef PinConfig;
@@ -423,7 +425,7 @@ int main(void)
 	
 	
 	int delayInMicroS=(int)((1000000/(selectedFreq)*(TABLE_SIZE+1)*4));
-	
+	TIM5_Delay_us(10000000);
 	while (programState==1) {
 		// sine
 		HAL_GPIO_WritePin(GPIOA,GPIO_PIN_15,GPIO_PIN_SET);
